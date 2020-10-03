@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+
+<!--MyBatis的映射配置文件-->
+<mapper namespace="com.ssm.dao.UserDao">
+
+    <!--根据用户名查询对应用户信息(包含用户对应的角色,角色对应哪些权限)-->
+    <select id="findByUsername" parameterType="String" resultType="com.ssm.pojo.User">
+        select *
+        from t_user
+        where username=#{username};
+    </select>
+
+</mapper>

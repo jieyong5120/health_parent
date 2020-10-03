@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+
+<!--MyBatis的映射配置文件-->
+<mapper namespace="com.ssm.dao.CheckItemDao">
+
+    <!--插入新增检查项数据-->
+    <insert id="add" parameterType="com.ssm.pojo.CheckItem">
+      insert into t_checkitem (code,name,sex,age,price,type,remark,attention)
+      values
+      (#{code},#{name},#{sex},#{age},#{price},#{type},#{remark},#{attention})
+    </insert>
+
+    <!--检查项分页查询,前端传递过来当前页,每页显示条数,查询的条件queryString,将当前页和每页显示条数作为MyBatis分页助手的条件,它来帮我们计算实现分页-->
+    <!--分页查询方法只有一个参数queryString,占位符不做要求,自定义-->
+    <!--分页查询limit关键字就不需要写了,MyBatis分页助手帮我们计算来实现-->
+    <select id="selectByCondition" parameterType="String" resultType="com.ssm.pojo.CheckItem">
+        select * from t_checkitem
+        <if test="value != null and value.length > 0">
+            where code=#{value} or name =#{value}
+        </if>
+    </select>
+
+    <!--根据检查项id查询检查组与检查项之间的中间关系表-->
+    <!--分页查询方法只有一个参数queryString,占位符不做要求,自定义-->
+    <select id="findCountByCheckItemId" parameterType="Integer" resultType="long">
+        select count(*) from t_checkgroup_checkitem where checkitem_id=#{checkitem_id}
+    </select>
+
+    <!--删除检查项-->
+    <delete id="deleteById" parameterType="Integer">
+        delete from t_checkitem where id=#{id}
+    </delete>
+
+    <!--根据id查询检查项-->
+    <select id="findById" parameterType="Integer" resultType="com.ssm.pojo.CheckItem">
+        select * from t_checkitem where id=#{id}
+    </select>
+
+    <!--编辑检查项-->
+    <!--if语句在字符串拼接要有逗号分割,采坑-->
+    <update id="edit" parameterType="com.ssm.pojo.CheckItem">
+        update t_checkitem
+        <set>
+            <if test="code != null">
+                code =#{code},
+            </if>
+            <if test="name != null">
+                name =#{name},
+            </if>
+            <if test="sex != null">
+                sex =#{sex},
+            </if>
+            <if test="age != null">
+                age =#{age},
+            </if>
+            <if test="price != null">
+                price =#{price},
+            </if>
+            <if test="type != null">
+                type =#{type},
+            </if>
+            <if test="attention != null">
+                attention =#{attention},
+            </if>
+            <if test="remark != null">
+                remark =#{remark}
+            </if>
+        </set>
+        where id=#{id}
+    </update>
+
+    <!--查询所有检查项(用于展示在新增检查组窗口检查项列表的表格中)-->
+    <select id="findAll" resultType="com.ssm.pojo.CheckItem">
+        select * from t_checkitem;
+    </select>
+
+
+    <!--根据检查组的id查询对应的检查项信息-->
+    <!--
+        SQL语句涉及到子查询(查询语句中嵌套查询语句)
+        in集合查询  子查询中间表,检查组与检查项多对多关系,通过检查组id查询所有关联的检查项id,通过检查项id查询对应的检查项信息
+
+        这条SQL语句没有关联映射下一条,可以使用resultType,我是练习使用一下resultMap属性(即SQL表中字段和实体类字段不匹配使用resultMap属性)
+    -->
+    <select id="findCheckItemById" resultMap="baseResultMap">
+        select * from t_checkitem
+        where id
+        in (select checkitem_id from t_checkgroup_checkitem where checkgroup_id=#{id});
+    </select>
+
+    <resultMap id="baseResultMap" type="com.ssm.pojo.CheckItem">
+        <!--column:数据库字段名  property:实体类属性  jdbcType:数据库字段类型-->
+        <id column="id" property="id" ></id>
+        <result column="code" property="code"></result>
+        <result column="name" property="name"></result>
+        <result column="sex" property="sex"></result>
+        <result column="age" property="age"></result>
+        <result column="price" property="price"></result>
+        <result column="type" property="type"></result>
+        <result column="attention" property="attention"></result>
+        <result column="remark" property="remark"></result>
+    </resultMap>
+
+</mapper>

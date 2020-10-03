@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+
+<!--MyBatis的映射配置文件-->
+<mapper namespace="com.ssm.dao.SetmealDao">
+
+    <!--分页查询-->
+    <!--分页查询方法只有一个参数queryString,占位符不做要求,自定义-->
+    <select id="selectByCondition" parameterType="String" resultType="com.ssm.pojo.Setmeal">
+        select * from t_setmeal
+        <if test="value != null and value.length > 0">
+            where code=#{value} or name =#{value} or helpCode =#{value};
+        </if>
+    </select>
+
+    <!--新增套餐-->
+    <insert id="add" parameterType="com.ssm.pojo.Setmeal">
+        <!--
+            selectKey 获取新增的主键
+            keyProperty 对应的model中的主键的属性名
+            AFTER 表示 SELECT LAST_INSERT_ID() 在insert执行之后执行,多用与自增主键,
+            BEFORE表示SELECT LAST_INSERT_ID() 在insert执行之前执行，这样的话就拿不到主键了,这种适合那种主键不是自增的类型resultType 主键类型
+
+            LAST_INSERT_ID()作用:是MySQL的一个函数,就是帮我们产生刚才insert语句执行自动分配产生的id
+            keyProperty属性:里面的值id对应着CheckGroup实体类中的id,两者需要一致,将刚才insert语句执行自动分配产生的id(自增主键)的值,封装到实体类中的id字段里面
+
+            通过MyBatis框架提供的selectKey标签获取到自增产生的id值
+        -->
+        <selectKey resultType="Integer" order="AFTER" keyProperty="id">
+            select LAST_INSERT_ID()
+        </selectKey>
+        insert into t_setmeal (name,code,helpCode,sex,age,price,remark,attention,img)
+        values
+        (#{name},#{code},#{helpCode},#{sex},#{age},#{price},#{remark},#{attention},#{img});
+    </insert>
+
+    <!--中间表,套餐与检查组的对应关系(新增套餐和编辑套餐共用)-->
+    <insert id="setSetmealAndCheckGroup" parameterType="HashMap">
+        insert into t_setmeal_checkgroup (setmeal_id,checkgroup_id) values (#{setmeal_id},#{checkgroup_id});
+    </insert>
+
+    <!--获取所有套餐信息-->
+    <select id="findAll" resultType="com.ssm.pojo.Setmeal">
+        select * from t_setmeal;
+    </select>
+
+
+    <!--根据id查询套餐详情,包含套餐基本信息、套餐对应的检查组信息以及检查组对应的检查项信息,一并都查询出来-->
+    <select id="findById" parameterType="int" resultMap="findByIdResultMap">
+        select * from t_setmeal where id=#{id};
+    </select>
+
+    <resultMap id="findByIdResultMap" type="com.ssm.pojo.Setmeal" extends="baseResultMap">
+        <!--
+            collection标签使用嵌套查询  在这个resultMap 标签中,用collection这个子标签对这个List进行映射
+
+            property="pojo对象中集合属性"
+            column="传递给嵌套查询语句的字段参数  如果传递多个参数,格式为column={参数名1=表字段1,参数名2=表字段2}"
+            ofType="集合属性中的pojo对象  指定的这个List所存放的javaBean的类型"
+            javaType="指定的当前这个配置的标签所对应的属性"
+            select="嵌套的查询语句"
+        -->
+        <collection
+                property="checkGroups"
+                column="id"
+                ofType="com.ssm.pojo.CheckGroup"
+                javaType="ArrayList"
+                select="com.ssm.dao.CheckGroupDao.findCheckGroupById"
+        >
+        </collection>
+    </resultMap>
+
+    <resultMap id="baseResultMap" type="com.ssm.pojo.Setmeal">
+        <!--column:数据库字段名  property:实体类属性  jdbcType:数据库字段类型-->
+        <id column="id" property="id" ></id>
+        <result column="name" property="name"></result>
+        <result column="code" property="code"></result>
+        <result column="helpCode" property="helpCode"></result>
+        <result column="sex" property="sex"></result>
+        <result column="age" property="age"></result>
+        <result column="price" property="price"></result>
+        <result column="remark" property="remark"></result>
+        <result column="attention" property="attention"></result>
+        <result column="img" property="img"></result>
+    </resultMap>
+
+    <!--查询体检套餐种类的数量-->
+    <select id="findSetmealCount" resultType="Map">
+        <!--as:别名关键字  group by:用于结合聚合函数,根据一个或多个列对结果集进行分组-->
+        select s.name,count(o.id) as value
+        from t_order o,t_setmeal s
+        where o.setmeal_id = s.id
+        group by s.name
+    </select>
+
+</mapper>

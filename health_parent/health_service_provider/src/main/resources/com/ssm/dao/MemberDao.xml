@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+
+<!--MyBatis的映射配置文件-->
+<mapper namespace="com.ssm.dao.MemberDao">
+
+    <!--根据id查询会员-->
+    <select id="findByTelephone" parameterType="String" resultType="com.ssm.pojo.Member">
+        select * from t_member where phoneNumber = #{phoneNumber};
+    </select>
+
+    <!--新增会员-->
+    <insert id="add" parameterType="com.ssm.pojo.Member">
+        <!--
+            selectKey 获取新增的主键
+            keyProperty 对应的model中的主键的属性名
+            AFTER 表示 SELECT LAST_INSERT_ID() 在insert执行之后执行,多用与自增主键,
+            BEFORE表示SELECT LAST_INSERT_ID() 在insert执行之前执行，这样的话就拿不到主键了,这种适合那种主键不是自增的类型resultType 主键类型
+
+            LAST_INSERT_ID()作用:是MySQL的一个函数,就是帮我们产生刚才insert语句执行自动分配产生的id
+            keyProperty属性:里面的值id对应着CheckGroup实体类中的id,两者需要一致,将刚才insert语句执行自动分配产生的id(自增主键)的值,封装到实体类中的id字段里面
+
+            通过MyBatis框架提供的selectKey标签获取到自增产生的id值
+        -->
+        <selectKey resultType="java.lang.Integer" order="AFTER" keyProperty="id">
+            SELECT LAST_INSERT_ID()
+        </selectKey>
+        insert into t_member(fileNumber,name,sex,idCard,phoneNumber,regTime,password,email,birthday,remark)
+        values
+        (#{fileNumber},#{name},#{sex},#{idCard},#{phoneNumber},#{regTime},#{password},#{email},#{birthday},#{remark})
+    </insert>
+
+    <!--根据日期统计会员数，统计指定日期之前的会员数-->
+    <select id="findMemberCountBeforeDate" parameterType="String" resultType="Integer">
+        select count(id) from t_member where regTime &lt;= #{value};
+    </select>
+
+    <!--根据日期统计会员数,查询今日新增会员数-->
+    <select id="findMemberCountByDate" parameterType="String" resultType="Integer">
+        select count(id) from t_member where regTime = #{value};
+    </select>
+
+    <!--查询总会员数-->
+    <select id="findMemberTotalCount" resultType="int">
+        select count(id) from t_member;
+    </select>
+
+    <!--根据日期统计会员数,统计指定日期之后的会员数(查询本周新增会员数以及本月新增会员数)-->
+    <select id="findMemberCountAfterDate" parameterType="String" resultType="Integer">
+        select count(id) from t_member where regTime &gt;= #{value};
+    </select>
+
+
+    <!--以下未开发-->
+
+
+    <select id="findAll" resultType="com.ssm.pojo.Member">
+        select * from t_member
+    </select>
+
+    <!--根据条件查询-->
+    <select id="selectByCondition" parameterType="string" resultType="com.ssm.pojo.Member">
+        select * from t_member
+        <if test="value != null and value.length > 0">
+            where fileNumber = #{value} or phoneNumber = #{value} or name = #{value}
+        </if>
+    </select>
+
+    <!--删除会员-->
+    <delete id="deleteById" parameterType="int">
+        delete from t_member where id = #{id}
+    </delete>
+
+    <!--根据id查询会员-->
+    <select id="findById" parameterType="int" resultType="com.ssm.pojo.Member">
+        select * from t_member where id = #{id}
+    </select>
+
+    <!--编辑会员-->
+    <update id="edit" parameterType="com.ssm.pojo.Member">
+        update t_member
+        <set>
+            <if test="fileNumber != null">
+                fileNumber = #{fileNumber},
+            </if>
+            <if test="name != null">
+                name = #{name},
+            </if>
+            <if test="sex != null">
+                sex = #{sex},
+            </if>
+            <if test="idCard != null">
+                idCard = #{idCard},
+            </if>
+            <if test="phoneNumber != null">
+                phoneNumber = #{phoneNumber},
+            </if>
+            <if test="regTime != null">
+                regTime = #{regTime},
+            </if>
+            <if test="password != null">
+                password = #{password},
+            </if>
+            <if test="email != null">
+                email = #{email},
+            </if>
+            <if test="birthday != null">
+                birthday = #{birthday},
+            </if>
+            <if test="remark != null">
+                remark = #{remark},
+            </if>
+        </set>
+        where id = #{id}
+    </update>
+
+</mapper>

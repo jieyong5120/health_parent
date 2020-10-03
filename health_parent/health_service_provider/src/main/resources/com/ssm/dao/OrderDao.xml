@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+
+<!--MyBatis的映射配置文件-->
+<mapper namespace="com.ssm.dao.OrderDao">
+
+    <resultMap id="baseResultMap" type="com.ssm.pojo.Order">
+        <!--column:数据库字段名  property:实体类属性-->
+        <id column="id" property="id"/>
+        <result column="member_id" property="memberId"/>
+        <result column="orderDate" property="orderDate"/>
+        <result column="orderType" property="orderType"/>
+        <result column="orderStatus" property="orderStatus"/>
+        <result column="setmeal_id" property="setmealId"/>
+    </resultMap>
+
+    <!--新增预约-->
+    <insert id="add" parameterType="com.ssm.pojo.Order">
+        <!--
+            selectKey 获取新增的主键
+            keyProperty 对应的model中的主键的属性名
+            AFTER 表示 SELECT LAST_INSERT_ID() 在insert执行之后执行,多用与自增主键,
+            BEFORE表示SELECT LAST_INSERT_ID() 在insert执行之前执行，这样的话就拿不到主键了,这种适合那种主键不是自增的类型resultType 主键类型
+
+            LAST_INSERT_ID()作用:是MySQL的一个函数,就是帮我们产生刚才insert语句执行自动分配产生的id
+            keyProperty属性:里面的值id对应着CheckGroup实体类中的id,两者需要一致,将刚才insert语句执行自动分配产生的id(自增主键)的值,封装到实体类中的id字段里面
+
+            通过MyBatis框架提供的selectKey标签获取到自增产生的id值
+        -->
+        <selectKey resultType="java.lang.Integer" order="AFTER" keyProperty="id">
+            SELECT LAST_INSERT_ID()
+        </selectKey>
+        insert into t_order (member_id,orderDate,orderType,orderStatus,setmeal_id)
+        values (#{memberId},#{orderDate},#{orderType},#{orderStatus},#{setmealId});
+    </insert>
+
+    <!--动态条件查询-->
+    <select id="findByCondition" parameterType="com.ssm.pojo.Order" resultMap="baseResultMap">
+        select * from t_order
+        <where>
+            <if test="id != null">
+                and id = #{id}
+            </if>
+            <if test="memberId != null">
+                and member_id = #{memberId}
+            </if>
+            <if test="orderDate != null">
+                and orderDate = #{orderDate}
+            </if>
+            <if test="orderType != null">
+                and orderType = #{orderType}
+            </if>
+            <if test="orderStatus != null">
+                and orderStatus = #{orderStatus}
+            </if>
+            <if test="setmealId != null">
+                and setmeal_id = #{setmealId}
+            </if>
+        </where>
+    </select>
+
+    <!--根据预约id查询预约信息，包括体检人信息、套餐信息-->
+    <select id="findByIdFromDetail" parameterType="Integer" resultType="Map">
+        <!--封装Map,查询字段起别名是Map的键,别名对应前端页面需要展示的信息名称(SpringMVC将后台的Map转换为JSON对象)-->
+        select m.name member,s.name setmeal,o.orderDate orderDate,o.orderType orderType
+        from
+        t_order o,
+        t_member m,
+        t_setmeal s
+        where o.member_id=m.id and o.setmeal_id=s.id and o.id=#{id};
+    </select>
+
+    <!--根据日期统计预约数-->
+    <select id="findOrderCountByDate" parameterType="String" resultType="Integer">
+        select count(id) from t_order where orderDate = #{value};
+    </select>
+
+    <!--根据日期统计预约数,统计指定日期之后的预约数(查询本周已预约人数以及本月已预约人数)-->
+    <select id="findOrderCountAfterDate" parameterType="String" resultType="Integer">
+        select count(id) from t_order where orderDate &gt;= #{value};
+    </select>
+
+    <!--根据日期统计到诊数-->
+    <select id="findVisitsCountByDate" parameterType="String" resultType="Integer">
+        select count(id) from t_order where orderDate = #{value} and orderStatus = '已到诊';
+    </select>
+
+    <!--根据日期统计到诊数,统计指定日期之后的到诊数(查询本周已就诊人数以及本月已就诊人数)-->
+    <select id="findVisitsCountAfterDate" parameterType="String" resultType="Integer">
+        select count(id) from t_order where orderDate &gt;= #{value} and orderStatus = '已到诊';
+    </select>
+
+    <!--热门套餐,查询前5条-->
+    <select id="findHotSetmeal" resultType="Map">
+        <!--inner join:内连接 group by:分组 order by:排序(查询字段排序) desc:降序 asc:升序 limit:分页限定,limit关键字只能在MySQL中使用-->
+        select s.name, count(o.id) setmeal_count ,count(o.id)/(select count(id) from t_order) proportion
+        from t_order o inner join t_setmeal s on s.id = o.setmeal_id
+        group by o.setmeal_id
+        order by setmeal_count desc limit 0,5
+    </select>
+
+</mapper>

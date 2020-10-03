@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+
+<!--MyBatis的映射配置文件-->
+<mapper namespace="com.ssm.dao.OrderSettingDao">
+
+    <!--新增预约-->
+    <insert id="add" parameterType="com.ssm.pojo.OrderSetting">
+        insert into t_ordersetting
+        (orderDate,number,reservations)
+        values
+        (#{orderDate},#{number},#{reservations});
+    </insert>
+
+    <!--根据指定日期更新可预约人数-->
+    <update id="editNumberByOrderDate" parameterType="com.ssm.pojo.OrderSetting">
+        update t_ordersetting set number=#{number} where orderDate=#{orderDate};
+    </update>
+
+    <!--根据预约日期查询-->
+    <select id="findCountByOrderDate" parameterType="java.util.Date" resultType="long">
+        select count(*) from t_ordersetting where orderDate=#{orderDate};
+    </select>
+
+    <!--根据日期查询预约设置数据-->
+    <select id="getOrderSettingByMonth" parameterType="Map" resultType="com.ssm.pojo.OrderSetting">
+        <!--dateBegin和dateEnd变量名要与Map的键一致,在此遇到坑-->
+        select * from t_ordersetting where orderDate between #{dateBegin} and #{dateEnd};
+    </select>
+
+    <!--根据预约日期查询预约信息(返回预约设置对象,获取到指定日期可预约人数和已预约人数)-->
+    <!--方法只有一个参数date,占位符不做要求,自定义-->
+    <select id="findByOrderDate" parameterType="Date" resultType="com.ssm.pojo.OrderSetting">
+        select * from t_ordersetting where orderDate=#{orderDate};
+    </select>
+
+    <!--根据日期更新已预约人数-->
+    <update id="editReservationsByOrderDate" parameterType="com.ssm.pojo.OrderSetting">
+        update t_ordersetting set reservations=#{reservations} where orderDate=#{orderDate};
+    </update>
+
+</mapper>

@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+
+<!--MyBatis的映射配置文件-->
+<mapper namespace="com.ssm.dao.CheckGroupDao">
+
+    <!--新增检查组-->
+    <insert id="add" parameterType="com.ssm.pojo.CheckGroup">
+        <!--
+            selectKey 获取新增的主键
+            keyProperty 对应的model中的主键的属性名
+            AFTER 表示 SELECT LAST_INSERT_ID() 在insert执行之后执行,多用与自增主键,
+            BEFORE表示SELECT LAST_INSERT_ID() 在insert执行之前执行，这样的话就拿不到主键了,这种适合那种主键不是自增的类型resultType 主键类型
+
+            LAST_INSERT_ID()作用:是MySQL的一个函数,就是帮我们产生刚才insert语句执行自动分配产生的id
+            keyProperty属性:里面的值id对应着CheckGroup实体类中的id,两者需要一致,将刚才insert语句执行自动分配产生的id(自增主键)的值,封装到实体类中的id字段里面
+
+            通过MyBatis框架提供的selectKey标签获取到自增产生的id值
+        -->
+        <selectKey resultType="Integer" order="AFTER" keyProperty="id">
+            select LAST_INSERT_ID()
+        </selectKey>
+        insert into t_checkgroup (code,name,helpCode,sex,remark,attention)
+        values
+        (#{code},#{name},#{helpCode},#{sex},#{remark},#{attention});
+    </insert>
+
+    <!--中间表,检查组与检查项的对应关系(新增检查组和编辑检查组共用)-->
+    <insert id="setCheckGroupAndCheckItem" parameterType="HashMap">
+        insert into t_checkgroup_checkitem (checkgroup_id,checkitem_id) values (#{checkgroup_id},#{checkitem_id});
+    </insert>
+
+    <!--分页查询-->
+    <!--分页查询方法只有一个参数queryString,占位符不做要求,自定义-->
+    <select id="selectByCondition" parameterType="String" resultType="com.ssm.pojo.CheckGroup">
+        select * from t_checkgroup
+        <if test="value != null and value.length > 0">
+            where code=#{value} or name =#{value} or helpCode =#{value}
+        </if>
+    </select>
+
+    <!--根据id查询检查组-->
+    <select id="findById" parameterType="Integer" resultType="com.ssm.pojo.CheckGroup">
+        select * from t_checkgroup where id=#{id};
+    </select>
+
+    <!--根据检查组的id查询对应关联的所有检查项-->
+    <select id="findCheckItemIdsByCheckGroupId" parameterType="Integer" resultType="Integer">
+        select checkitem_id from t_checkgroup_checkitem where checkgroup_id=#{id};
+    </select>
+
+    <!--根据检查组id删除中间关系表数据(清理原有关联关系)-->
+    <delete id="deleteAssociation" parameterType="Integer">
+        delete from t_checkgroup_checkitem where checkgroup_id=#{id};
+    </delete>
+
+    <!--编辑检查组-->
+    <!--if语句在字符串拼接要有逗号分割,采坑-->
+    <update id="edit" parameterType="com.ssm.pojo.CheckGroup">
+        update t_checkgroup
+        <set>
+            <if test="code != null">
+                code =#{code},
+            </if>
+            <if test="name != null">
+                name =#{name},
+            </if>
+            <if test="helpCode != null">
+                helpCode =#{helpCode},
+            </if>
+            <if test="sex != null">
+                sex =#{sex},
+            </if>
+            <if test="remark != null">
+                remark =#{remark},
+            </if>
+            <if test="attention != null">
+                attention =#{attention},
+            </if>
+        </set>
+        where id=#{id}
+    </update>
+
+    <!--删除检查组(清除中间关系表)-->
+    <delete id="delete" parameterType="Integer">
+        delete from t_checkgroup where id=#{id};
+    </delete>
+
+    <!--查询所有检查组(用于展示在新增(以及编辑)套餐窗口检查组列表的表格中)-->
+    <select id="findAll" resultType="com.ssm.pojo.CheckGroup">
+        select * from t_checkgroup;
+    </select>
+
+
+    <!--根据套餐id查询对应的检查组详情,包含检查组基本信息、检查组对应的检查项信息,一并都查询出来-->
+    <!--
+        SQL语句涉及到子查询(查询语句中嵌套查询语句)
+        in集合查询  子查询中间表,套餐与检查组多对多关系,通过套餐id查询所有关联的检查组id,通过检查组id查询对应的检查组信息
+    -->
+    <!--
+        SQL语句嵌套查询使用子查询,也可以使用内连接查询
+        select * from t_checkgroup,t_setmeal_checkgroup
+        where
+        t_checkgroup.id=t_setmeal_checkgroup.checkgroup_id
+        and
+        t_setmeal_checkgroup.setmeal_id=#{id}
+    -->
+    <select id="findCheckGroupById" resultMap="findByIdResultMap">
+        select * from t_checkgroup
+        where id
+        in (select checkgroup_id from t_setmeal_checkgroup where setmeal_id=#{id});
+    </select>
+
+    <resultMap id="findByIdResultMap" type="com.ssm.pojo.CheckGroup" extends="baseResultMap">
+        <!--
+            collection标签使用嵌套查询  在这个resultMap 标签中,用collection这个子标签对这个List进行映射
+
+            property="pojo对象中集合属性"
+            column="传递给嵌套查询语句的字段参数  如果传递多个参数,格式为column={参数名1=表字段1,参数名2=表字段2}"
+            ofType="集合属性中的pojo对象  指定的这个List所存放的javaBean的类型"
+            javaType="指定的当前这个配置的标签所对应的属性"
+            select="嵌套的查询语句"
+        -->
+        <collection
+                property="checkItems"
+                column="id"
+                ofType="com.ssm.pojo.CheckItem"
+                javaType="ArrayList"
+                select="com.ssm.dao.CheckItemDao.findCheckItemById"
+        >
+        </collection>
+    </resultMap>
+
+    <resultMap id="baseResultMap" type="com.ssm.pojo.CheckGroup">
+        <!--column:数据库字段名  property:实体类属性  jdbcType:数据库字段类型-->
+        <id column="id" property="id" ></id>
+        <result column="name" property="name"></result>
+        <result column="code" property="code"></result>
+        <result column="helpCode" property="helpCode"></result>
+        <result column="sex" property="sex"></result>
+        <result column="remark" property="remark"></result>
+        <result column="attention" property="attention"></result>
+    </resultMap>
+
+</mapper>
